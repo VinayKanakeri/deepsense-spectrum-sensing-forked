@@ -27,6 +27,7 @@ import os
 # Parse Arguments
 parser = argparse.ArgumentParser(description='Training or testing CNN')
 parser.add_argument('mode', type=str, default="train", help="choose training/testing mode")
+parser.add_argument('snr', type=str, default="SNR", help="choose SNR")
 args = parser.parse_args()
 
 #Model parameters
@@ -56,28 +57,26 @@ model.summary()
 #Open dataset .h5 file either for training or testing
 dset_fp = [file for file in os.listdir("./lte-dataset/") if args.mode in file] 
 for file in dset_fp:
-    dset = h5py.File("./lte-dataset/" + file, 'r')
-    X = dset['X'][()]
-    y = dset['y'][()]
+    if args.snr in file:
+        dset = h5py.File("./lte-dataset/" + file, 'r')
+        X = dset['X'][()]
+        y = dset['y'][()]
 
-    X = np.swapaxes(X, 0, 2)
-    y = np.swapaxes(y, 0, 1)
-
-    # print(f'X: {X.shape}')
-    # print(f'Y: {y[:,0]}')
+        X = np.swapaxes(X, 0, 2)
+        y = np.swapaxes(y, 0, 1)
 
 
-    if args.mode == 'train':
+        if args.mode == 'train':
 
-        #Compile Model
-        adam = tf.keras.optimizers.Adam(lr=0.001)
-        model.compile(loss='binary_crossentropy',
-                    optimizer=adam,
-                    metrics=['accuracy'])
+            #Compile Model
+            adam = tf.keras.optimizers.Adam(lr=0.001)
+            model.compile(loss='binary_crossentropy',
+                        optimizer=adam,
+                        metrics=['accuracy'])
 
-        #Train
-        model.fit(x=X, y=y, validation_split=0.1, batch_size=256, epochs=150, verbose=1, shuffle=True)
-        model.save('deepsense-model-trained')
+            #Train
+            model.fit(x=X, y=y, validation_split=0.1, batch_size=256, epochs=150, verbose=1, shuffle=True)
+            model.save('deepsense-model-trained')
 
     elif args.mode == 'test':
 
