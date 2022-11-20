@@ -32,7 +32,7 @@ parser.add_argument('-n', '--name', type=str, default="deepsense-model-trained",
 args = parser.parse_args()
 
 #Model parameters
-n_classes = 1       #number of classes for SDR case
+n_classes = 16       #number of classes for SDR case
 dim = 32    #Number of I/Q samples being taken as input
 n_channels = 2      #One channel for I and the other for Q
 
@@ -65,7 +65,8 @@ for file in dset_fp:
 
         X = np.swapaxes(X, 0, 2)
         y = np.swapaxes(y, 0, 1)
-        Y = y[:, 0]
+        #Y = y[:, 0]
+        Y = y
 
         if args.mode == 'train':
 
