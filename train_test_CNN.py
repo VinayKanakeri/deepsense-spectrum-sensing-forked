@@ -26,12 +26,13 @@ import os
 
 # Parse Arguments
 parser = argparse.ArgumentParser(description='Training or testing CNN')
-parser.add_argument('mode', type=str, default="train", help="choose training/testing mode")
-parser.add_argument('snr', type=str, default="SNR", help="choose SNR")
+parser.add_argument('-m', 'mode', type=str, default="train", help="choose training/testing mode")
+parser.add_argument('-s', 'snr', type=str, default="10", help="choose SNR")
+parser.add_argument('-n', 'name', type=str, default="deepsense-model-trained", help="name to save the trained model")
 args = parser.parse_args()
 
 #Model parameters
-n_classes = 16       #number of classes for SDR case
+n_classes = 1       #number of classes for SDR case
 dim = 32    #Number of I/Q samples being taken as input
 n_channels = 2      #One channel for I and the other for Q
 
@@ -64,19 +65,19 @@ for file in dset_fp:
 
         X = np.swapaxes(X, 0, 2)
         y = np.swapaxes(y, 0, 1)
-
+        Y = y[:, 0]
 
         if args.mode == 'train':
 
             #Compile Model
-            adam = tf.keras.optimizers.Adam(lr=0.001)
+            adam = tf.keras.optimizers.Adam(lr=0.005)
             model.compile(loss='binary_crossentropy',
                         optimizer=adam,
                         metrics=['accuracy'])
 
             #Train
-            model.fit(x=X, y=y, validation_split=0.1, batch_size=256, epochs=150, verbose=1, shuffle=True)
-            model.save('deepsense-model-trained')
+            model.fit(x=X, y=Y, validation_split=0.1, batch_size=256, epochs=300, verbose=1, shuffle=True)
+            model.save(args.name)
 
     elif args.mode == 'test':
 
