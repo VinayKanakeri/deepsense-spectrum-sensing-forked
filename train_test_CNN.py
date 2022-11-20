@@ -26,9 +26,9 @@ import os
 
 # Parse Arguments
 parser = argparse.ArgumentParser(description='Training or testing CNN')
-parser.add_argument('-m', 'mode', type=str, default="train", help="choose training/testing mode")
-parser.add_argument('-s', 'snr', type=str, default="10", help="choose SNR")
-parser.add_argument('-n', 'name', type=str, default="deepsense-model-trained", help="name to save the trained model")
+parser.add_argument('-m', '--mode', type=str, default="train", help="choose training/testing mode")
+parser.add_argument('-s', '--snr', type=str, default="10", help="choose SNR")
+parser.add_argument('-n', '--name', type=str, default="deepsense-model-trained", help="name to save the trained model")
 args = parser.parse_args()
 
 #Model parameters
