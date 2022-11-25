@@ -26,22 +26,20 @@ import argparse
 # Parse Arguments
 parser = argparse.ArgumentParser(description='Training or testing CNN')
 parser.add_argument('-m', '--mode', type=str, default="train", help="choose training/testing mode")
+parser.add_argument('-tf', '--train_file', type=str, default="train_file", help="file name for train data")
 parser.add_argument('-t', '--train_name', type=str, default="train_model", help="Name for saved model")
 parser.add_argument('-s', '--test_model', type=str, default="test_model", help="Test model name")
 args = parser.parse_args()
 
 #Open dataset .h5 file either for training or testing
-dset_fp = './sdr_wifi_' + args.mode + '.hdf5'
-dset = h5py.File(dset_fp, 'r')
-X = dset['X'][()]
-y = dset['y'][()]
-
+X = np.load(args.train_file + '.npy')
+y = np.load(args.train_file + '_labels' + '.npy')
 
 
 if args.mode == 'train':
 
     #Model parameters
-    n_classes = 4       #number of classes for SDR case
+    n_classes = 16       #number of classes for SDR case
     dim = X.shape[1]    #Number of I/Q samples being taken as input
     n_channels = 2      #One channel for I and the other for Q
 
