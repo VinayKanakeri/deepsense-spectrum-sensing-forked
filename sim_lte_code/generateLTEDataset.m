@@ -1,21 +1,8 @@
-%Author: Daniel Uvaydov
-%Generates uplink LTE-M dataset that toggles transmissions on different channels
-%making some channels busy while others are free. Reference for this
-%code can be found at:
-%https://www.mathworks.com/help/lte/ug/lte-m-uplink-waveform-generation.html
-%HIGHLY SUGGEST YOU READ ABOVE LINK FIRST TO UNDERSTAND CODE AS THIS CODE ESSENTIALLY
-%GENERATES FRAMES VIA THE LINK ABOVE JUST MULTIPLE TIMES ON DIFFERENT BANDS
-%
-%Running code as is will generate a training and testing set containig varying transmissions on 16 sub-bands with
-%-10dB SNR and one sample per label. Total number of multi-hot encoded labels are 2^16.
-
-function [dataset] = generateLTEDataset(snr, epochs, dataSize)
+function [dataset] = generateLTEDataset(nch, norm_snr, epochs, dataSize, sample_count, filename)
 dataset = struct();
 for ep=1:epochs
-    snr_db = snr; %SNR in dB
-    nch = 1; %nuber of sub-bands/channels to break band into/classify
     nlabels = 2^nch; %number of possible combinations of labels for multi-hot encoded busy channels
-    niq = 50; %number of iq samples to take as input
+    niq = 128; %number of iq samples to take as input
     all_ch = 1:nch;
     %all_ch = reshape(all_ch,2,nch/2)';
 
@@ -25,8 +12,8 @@ for ep=1:epochs
     labels = dec2bin(labels, nch);
 
     %holds data corresponding to each label
-    data = zeros(size(labels,1), 3);
-
+    data = zeros(size(labels,1), sample_count);
+    snr_db_list = zeros(size(labels,1), 1);
     %for each label generate data
     for l = 1:length(labels)
         disp(l);
@@ -214,22 +201,18 @@ for ep=1:epochs
         %add noise and fading to waveform
         rayleighchan = comm.RayleighChannel('PathDelays',[0 1.5e-4 3e-4], 'AveragePathGains',[1 1 1]);
         waveform_f = rayleighchan(waveform);
+        snr_db = 10*log10(sum(abs(waveform_f).^2)*10^(norm_snr/10));
+        snr_db_list(l, 1) = snr_db;
+        waveform_out = awgn(waveform_f, norm_snr);        
 
-        if ~isempty(active_ch)
-            waveform_out = awgn(waveform_f, snr_db);
-        else
-            waveform_out = awgn(waveform_f, snr_db);
-        end
-        
-
-        r = randi([1 15000],1,3);
+        r = randi([1 15000],1,sample_count);
         %seperate real and imaginary and take first niq samples
         % data(l,1) = sum(real(waveform_out(1:niq)).^2 + imag(waveform_out(1:niq)).^2)/(10^(snr_db/10));
-        data(l,1) = sum(real(waveform_out(r(1):r(1)+50)).^2 + imag(waveform_out(r(1):r(1)+50)).^2)/(50*10^(snr_db/10));
-        data(l,2) = sum(real(waveform_out(r(2):r(2)+50)).^2 + imag(waveform_out(r(2):r(2)+50)).^2)/(50*10^(snr_db/10));
-        data(l,3) = sum(real(waveform_out(r(3):r(3)+50)).^2 + imag(waveform_out(r(3):r(3)+50)).^2)/(50*10^(snr_db/10));
+        for sample=1:sample_count
+            data(l,sample)= sum(real(waveform_out(r(sample):r(sample)+50)).^2 + imag(waveform_out(r(sample):r(sample)+50)).^2)*10^(norm_snr/10)/50;
+        end
     end
-
+    
     %convert labels to multi-hot encoded array
     labels = bin2dec(labels);
     labels = de2bi(labels,nch);
@@ -238,25 +221,12 @@ for ep=1:epochs
     permIDX = randperm(size(data,1));
     dataTrain = data(permIDX, :);
     labelsTrain = labels(permIDX,:);
+    snrTrain = snr_db_list(permIDX,:);
     dataset(ep).X = dataTrain;
     dataset(ep).Y = labelsTrain;
+    dataset(ep).snr = snrTrain;
 
-
-    % %save dataset
-    % train_fp = strcat('lte_', num2str(snr_db), '_', num2str(niq), '_train.h5');
-    % 
-    % h5create(train_fp,'/X', size(dataTrain));
-    % h5write(train_fp,'/X', dataTrain);
-    % h5create(train_fp,'/y', size(labelsTrain));
-    % h5write(train_fp,'/y', labelsTrain);
-    % 
-    % test_fp = strcat('lte_', num2str(snr_db), '_', num2str(niq), '_test.h5');
-    % 
-    % h5create(test_fp,'/X', size(dataTest)); 
-    % h5write(test_fp,'/X', dataTest);
-    % h5create(test_fp,'/y', size(labelsTest));
-    % h5write(test_fp,'/y', labelsTest);
 end
-save('dataset', 'dataset')
+save(filename, 'dataset')
 
 

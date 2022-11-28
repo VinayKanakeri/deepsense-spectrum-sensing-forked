@@ -10,16 +10,16 @@
 %-10dB SNR and one sample per label. Total number of multi-hot encoded labels are 2^16.
 
 
-snr_db = 0; %SNR in dB
-nch = 16; %number of sub-bands/channels to break band into/classify
+snr_db = -5; %SNR in dB
+nch = 4; %number of sub-bands/channels to break band into/classify
 nlabels = 2^nch; %number of possible combinations of labels for multi-hot encoded busy channels
 niq = 128; %number of iq samples to take as input
 all_ch = 1:nch;
 all_ch = reshape(all_ch,2,nch/2)';
 
 %holds all different training/testing labels that must be generated
-labels = 0:(nlabels-1);
-labels = kron(labels,ones(1,8));
+labels = 1:(nlabels-1);
+labels = kron(labels,ones(1,3200));
 labels = dec2bin(labels, nch);
 
 %holds data corresponding to each label
@@ -210,9 +210,10 @@ for l = 1:length(labels)
     waveform = lteSCFDMAModulate(ue,sfgrid);
 
     %add noise and fading to waveform
-    waveform_n = awgn(waveform, snr_db,'measured');
     rayleighchan = comm.RayleighChannel('PathDelays',[0 1.5e-4 3e-4], 'AveragePathGains',[1 1 1]);
-    waveform_out = rayleighchan(waveform_n);
+    waveform_f = rayleighchan(waveform);
+    waveform_out = awgn(waveform_f, snr_db,'measured');
+    
 
     %seperate real and imaginary and take first niq samples
     data(l,:,:) = [real(waveform_out(1:niq)) imag(waveform_out(1:niq))];
@@ -222,6 +223,10 @@ end
 labels = bin2dec(labels);
 labels = de2bi(labels,nch);
 labels = uint8(labels);
+
+permIDX = randperm(size(data,1));
+data = data(permIDX, :, :);
+labels = labels(permIDX,:);
 
 % Cross validation (train: 90%, test: 10%)
 cv = cvpartition(size(data,1),'HoldOut',0.1);
